@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.10;
 
 // ----------------------------------------------------------------------------
 // Security Token
@@ -110,9 +110,9 @@ interface IERCST is IERCPFT {
 //
 // Borrowed from MiniMeToken
 // ----------------------------------------------------------------------------
-contract ApproveAndCallFallBack {
-    function receiveApproval(address from, uint256 tokens, address token, bytes data) public;
-}
+// contract ApproveAndCallFallBack {
+//     function receiveApproval(address from, uint256 tokens, address token, bytes memory data) public;
+// }
 
 
 // ----------------------------------------------------------------------------
@@ -121,18 +121,22 @@ contract ApproveAndCallFallBack {
 // NOTE: This token contract allows the owner to mint and burn tokens for any
 // account, and is used for testing
 // ----------------------------------------------------------------------------
-contract ERC20Token is ERC20Interface, Owned {
+contract SecurityToken is ERC20Interface, Owned {
     using SafeMath for uint;
+    
+    event Transfer(address indexed from, address indexed to, uint tokens);
+    event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
 
     string _symbol;
     string  _name;
     uint8 _decimals;
     uint _totalSupply;
+    address payable public contractAddress = address(this);
 
     mapping(address => uint) balances;
     mapping(address => mapping(address => uint)) allowed;
 
-    constructor(string symbol, string name, uint8 decimals, address tokenOwner, uint initialSupply) public {
+    constructor(string memory symbol, string memory name, uint8 decimals, address tokenOwner, uint initialSupply) public {
         initOwned(msg.sender);
         _symbol = symbol;
         _name = name;
@@ -141,10 +145,10 @@ contract ERC20Token is ERC20Interface, Owned {
         _totalSupply = initialSupply;
         emit Transfer(address(0), tokenOwner, _totalSupply);
     }
-    function symbol() public view returns (string) {
+    function symbol() public view returns (string memory) {
         return _symbol;
     }
-    function name() public view returns (string) {
+    function name() public view returns (string memory) {
         return _name;
     }
     function decimals() public view returns (uint8) {
@@ -177,19 +181,19 @@ contract ERC20Token is ERC20Interface, Owned {
     function allowance(address tokenOwner, address spender) public view returns (uint remaining) {
         return allowed[tokenOwner][spender];
     }
-    function approveAndCall(address spender, uint tokens, bytes data) public returns (bool success) {
-        allowed[msg.sender][spender] = tokens;
-        emit Approval(msg.sender, spender, tokens);
-        ApproveAndCallFallBack(spender).receiveApproval(msg.sender, tokens, this, data);
-        return true;
-    }
-    function mint(address tokenOwner, uint tokens) public onlyOwner returns (bool success) {
+    // function approveAndCall(address spender, uint tokens, bytes memory data) public returns (bool success) {
+    //     allowed[msg.sender][spender] = tokens;
+    //     emit Approval(msg.sender, spender, tokens);
+    //     ApproveAndCallFallBack(spender).receiveApproval(msg.sender, tokens, contractAddress, data);
+    //     return true;
+    // }
+    function mint(address tokenOwner, uint tokens) public returns (bool success) {
         balances[tokenOwner] = balances[tokenOwner].add(tokens);
         _totalSupply = _totalSupply.add(tokens);
         emit Transfer(address(0), tokenOwner, tokens);
         return true;
     }
-    function burn(address tokenOwner, uint tokens) public onlyOwner returns (bool success) {
+    function burn(address tokenOwner, uint tokens) public returns (bool success) {
         if (tokens < balances[tokenOwner]) {
             tokens = balances[tokenOwner];
         }
@@ -198,7 +202,7 @@ contract ERC20Token is ERC20Interface, Owned {
         emit Transfer(tokenOwner, address(0), tokens);
         return true;
     }
-    function () public payable {
+    function () external payable {
         revert();
     }
     function transferAnyERC20Token(address tokenAddress, uint tokens) public onlyOwner returns (bool success) {
